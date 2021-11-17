@@ -1,0 +1,183 @@
+---
+title: "PEC2. Visualización de datos"
+author: "Jia Wei Yang Yin"
+date: "16/11/2021"
+output: html_document
+---
+
+# Descripción de la PEC 2 de Visualización de datos:
+
+El objetivo principal de esta PEC es crear 3 visualizaciones usando diferentes técnicas asignadas que son: `Area Chart, Nightingale Chart y Beeswarm plot`. De las cuales, todas se harán con lenguaje R. 
+
+Según el enunciado de  la PEC 2, es el alumno quien escoge la base de datos para cada técnica propuesta y el software a trabajar. Por lo tanto, tiene la libertad de decidir cómo crearr estas visualizaciones de datos. 
+
+Estas representaciones visuales se publicaran a Internet con un URL accesible y se presentarán en un vídeo subiendolo a VideoPAC. 
+
+Por último, la esencia de este ejercicio es **familiarizarse con técnicas d visualización, y además, a partir de cada técnica saber para qué tipo de datos es adecuada y buscar un conjunto de datos que sea coherente**, si puede ser sin necesidad de hacer alguna transformación de datos. 
+
+
+
+# Técnicas de visualización de datos:
+
+## Area Chart
+
+El dataset data que vamos a trabajar para crear el Area Chart contiene información detallada del Covid de varios países del mundo del año pasado (desde el 15 )
+
+```{r}
+# Cargamos la base de datos y le asignamos el nombre data:
+data<-read.csv("data.csv",header=TRUE)
+
+# Mostramos el tipo de dato para cada variable del dataset data. 
+str(data)
+```
+
+```{r}
+class(data)
+```
+
+
+Observamos que existe 12 variables y 61900 observaciones. Pero, las variables no tienen el tipo correcto y los nombres de las variables son muy largas para entender. Lo arreglamos de la siguiente manera:
+
+```{r}
+# Cambiamos los nombres.
+names(data)[names(data)=="dateRep"]<-"fecha"
+names(data)[names(data)=="day"]<-"dia"
+names(data)[names(data)=="month"]<-"mes"
+names(data)[names(data)=="year"]<-"año"
+names(data)[names(data)=="cases"]<-"Covid_casos"
+names(data)[names(data)=="deaths"]<-"Covid_muertos"
+names(data)[names(data)=="countriesAndTerritories"]<-"paises"
+names(data)[names(data)=="countryterritoryCode"]<-"Codigo_Pais"
+names(data)[names(data)=="continentExp"]<-"continente"
+names(data)[names(data)==
+              "Cumulative_number_for_14_days_of_COVID.19_cases_per_100000"]<-"ratio_Covid"
+```
+
+```{r}
+# Adaptamos el tipo de dato de cada variable necesaria.
+data$fecha<- as.Date(data$fecha,format = "%d/%m/%Y")
+data$paises <- as.factor(data$paises)
+data$geoId <- as.factor(data$geoId)
+data$Codigo_Pais<- as.factor(data$Codigo_Pais)
+data$continente <- as.factor(data$continente)
+```
+
+Verificamos el dataset mostrando las primeras filas del dataset data. 
+
+```{r}
+head(data)
+```
+```{r}
+min(data$fecha)
+```
+
+```{r}
+max(data$fecha)
+```
+
+```{r}
+# Creamos el dataset para la situación de España.
+Spain<-subset(data, paises=="Spain")
+head(Spain)
+```
+
+
+El Area Chart es una combinación del gráfico gráfico de líneas y el gráfico de barras. Según Wikipedia y otras páginas webs, se reconoce que el Area Chart fue inventado por William Playfair (1759 – 1823), así como también inventó los gráficos de barras, de línea y circulares.
+
+El Area Chart sirve para representar gráficamente valores numéricos (datos cuantitativos) de uno o más grupos a lo largo de la progresión de una variable (normalmente es el tiempo). 
+
+En nuestro caso como ejemplo de aplicación, vamos a representar la evolución de los casos del Covid de España desde la fecha 31 de diciembre de 2019 hasta el día 14 de diciembre de 2020. Para que la estructura de este gráfico sea funcional, se trabaja la variable Covid_casos cuantitativa numérica (Eje Y) y la variable fecha (Eje X). 
+
+Normalmente, las limitaciones que puede tener un Area Chart es solo sirve para analizar tendencias de un fenómeno y no valores exactos, por lo tanto, puede crear ambiguedad. También, para ser eficiente solo se utiliza en pocos grupos o categorías (como por ejemplo, comparar España con Italia, pero no comparar España con 100 países). 
+
+En nuestro caso observamos que durante los meses de enero hasta julio del año 2020 (excepto abril) no se detectaron muchos casos de Covid, en cambio, después del mes de julio 2020 hubo una tendencia creciente de casos de Covid, siendo a finales de año del 2020 (después de octubre 2020) como el record de casos de Covid en España. 
+
+
+Para crear el siguiente gráfico, se ha tomado de referencia la siguiente página web: https://www.r-graph-gallery.com/area-chart.html
+
+```{r}
+# Libraries
+library(ggplot2)
+library(hrbrthemes)
+
+# create data
+xValue <- Spain$fecha
+yValue <- Spain$Covid_casos
+Spain <- data.frame(xValue,yValue)
+
+# Plot
+ggplot(Spain, aes(x=xValue, y=yValue)) +
+  geom_area( fill="steelblue4", alpha=0.4) +
+  geom_line(color="lightblue1", size=2) +
+  geom_point(size=1, color="blue") +
+  theme_ipsum() +
+  ggtitle("Evolución Casos Covid España 2019-2020")+
+  theme(plot.title=element_text(size=13))+
+  xlab("Evolución temporal durante el año 2019 y el año 2020")+
+  ylab("Casos de Covid en España") 
+```
+
+
+## Beeswarm plot
+
+Según Cran-R-Project, Beeswarm plot es un gráfico de dispersión unidimensional, es decir, que muestra toda la información (variable cuantitativa) en un solo eje (generalmente eje X). Este tipo de gráfico es muy útil cuando deseamos mostrar muchos puntos de datos a la vez y facilita detectar valores atípicos. 
+
+Según R Statistics blog, el Beeswarm plot es una invención de **Aron Charles Eklund** con el paquete `beeswarm package` que es una propuesta de mejora del Boxplot creado de Ken Kleinman, de manera que permite que cada punto de dispersión del gráfico sea visible y no se apilen juntos.
+
+En nuestro caso, aplicamos este tipo de gráfico al mismo dataset data.csv para estudiar la dispersión de casos de fallecidos por el Covid de entre China y España. Para que tenga una estructura funcional trabajaremos con la variable Covid_muertos (variable cuantitativa) y variable paises, siendo España y China (variable cualitativa).
+
+
+```{r}
+library(dbplyr)
+c<-dplyr::filter(data, paises==c("Spain", "China"))
+head(c)
+```
+```{r}
+unique(c$paises)
+```
+
+
+```{r}
+if(!require(beeswarm)) install.packages(beeswarm)
+data(breast)
+beeswarm(Covid_muertos ~ paises, data = c,
+    method = 'swarm',
+    xlab = 'Paises', ylab = 'Casos de fallecidos por Covid España vs China',
+    pch = 16)
+```
+
+Las limitaciones de este tipo de gráfico es que el tamaño del dataset no puede ser muy grande, he tenido muchos problemas de crear con este gráfico al trabajar con un dataset de más de 60000 observaciones. Sin emargo, aunque hayamos reducido el tamaño, este gráfico no es muy perfecto ya que no me ha permitido crear gráficos deseados, deseaba analizar la dispersión de casos fallecidos por covid de diferentes continentes, pero no me ha permitido. 
+
+El resultado obtenido es que China tiene menos dispersión de casos fallecidos por covid que España, siendo España con mayor valores atípicos extremos y el país con más números de personas afectadas. 
+
+
+
+# Criterios de evaluación PEC 2 (Guía a seguir): 
+
+Para realizar esta PEC 2, el guión para hacer el vídeo explicativo que se seguirá es el siguiente: 
+
+  1. Presentar el esquema de la PEC 1. 
+  2. Indicar dónde está colgado la visualización y cómo acceder. 
+  3. Definir cada técnica de visualización de forma general (nombre, origen, descripción/funcionamiento, ejemplos de aplicación, etc.)
+  4. Describir el tipo de datos que se puede representar con cada técnica (datos cuantitativos/cualitativos, ¿qué estructura debe tener para cada técnica?), ¿cuáles limitaciones de datos hay? 
+  5. Hacer una representación con cada una de las técnicas usando un conjunto de datos abiertos.Las representaciones tienen que ser simples. 
+  6. Comentar brevemente las 3 representaciones indicando qué se representa y qué o qué aspectos muestra o demuestra cada representación. 
+  7. Cada una de las 3 representaciones debe ser de 2 a 3 minutos, siendo el total del vídeo 7 minutos. 
+  
+# Referencias utilizadas:
+
+1. Download historical data (to 14 December 2020) on the daily number of new reported COVID-19 cases and deaths worldwide. Disponible en: https://www.ecdc.europa.eu/en/publications-data/download-todays-data-geographic-distribution-covid-19-cases-worldwide
+
+2. Wikipedia. Area Chart. Disponible en: https://en.wikipedia.org/wiki/Area_chart
+
+3. The R Graph Gallery. Disponible en: https://www.r-graph-gallery.com/area-chart.html
+
+4. Chartio. A Complete Guide to Area Charts. Disponible en: https://chartio.com/learn/charts/area-chart-complete-guide/
+
+5. FunsionCharts. Area Charts: A guide for begginers. Disponible en: https://www.fusioncharts.com/area-charts
+
+6. R Statistics Blog. Beeswarm Boxplot (and plotting it with R). Disponible en: https://www.r-statistics.com/2011/03/beeswarm-boxplot-and-plotting-it-with-r/
+
+7. Cran-R-Project. Package "beeswarm". Disponible en: https://cran.r-project.org/web/packages/beeswarm/beeswarm.pdf
+
+8. Martinheiz. Better Data Visualization Using Beeswarm Chart. Disponible en: https://martinheinz.dev/blog/27
